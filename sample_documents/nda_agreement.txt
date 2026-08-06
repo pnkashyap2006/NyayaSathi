@@ -1,0 +1,27 @@
+NON-DISCLOSURE AND CONFIDENTIALITY AGREEMENT
+
+This Non-Disclosure Agreement ("Agreement") is entered into on August 1, 2026, by and between Apex Tech Solutions Inc. ("Disclosing Party"), and Vertex Dynamics LLC ("Receiving Party").
+
+1. PURPOSE
+The Disclosing Party agrees to disclose confidential software architecture blueprints, trade secrets, and financial projections ("Confidential Information") to the Receiving Party solely for evaluating a potential joint venture.
+
+2. OBLIGATIONS OF RECEIVING PARTY
+The Receiving Party agrees to:
+a) Maintain strict confidentiality using no less than a reasonable degree of care.
+b) Not disclose, publish, or copy any Confidential Information to third parties without prior written consent.
+c) Use the Confidential Information exclusively for evaluating the business relationship.
+
+3. EXCLUSIONS
+Confidential Information does not include information that:
+a) Is or becomes publicly known through no breach of this Agreement.
+b) Was already known to Receiving Party prior to disclosure.
+
+4. TERM & TERMINATION
+This Agreement shall remain in effect for two (2) years from the effective date. The confidentiality obligations regarding trade secrets shall survive termination indefinitely.
+
+5. GOVERNING LAW & ARBITRATION
+This Agreement shall be governed by the laws of the State of Delaware. Any disputes arising hereunder shall be resolved through binding arbitration administered by the American Arbitration Association (AAA).
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first above written.
+Apex Tech Solutions Inc. (Disclosing Party)
+Vertex Dynamics LLC (Receiving Party)
