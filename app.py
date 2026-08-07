@@ -76,8 +76,8 @@ def render_chat_assistant_page(api_key: str, model_name: str):
     # Starter Preset Examples Banner
     st.markdown(
         """
-        <div class="glass-card" style="border-left: 5px solid #FF9933; margin-bottom: 1.5rem;">
-            <div class="card-header" style="margin-bottom: 0.4rem;">⚡ Quick Research Starters</div>
+        <div class="glass-card" style="border-left: 5px solid #00F3FF; margin-bottom: 1.5rem;">
+            <div class="card-header" style="margin-bottom: 0.4rem; color: #00F3FF;">⚡ Quick Research Starters</div>
             <p style="color: #CBD5E1; margin-bottom: 0.8rem; font-size: 0.92rem;">
                 Click any prompt below to experience dynamic, intent-adaptive legal reasoning:
             </p>
@@ -108,21 +108,21 @@ def render_chat_assistant_page(api_key: str, model_name: str):
     # Render Chat History Thread
     st.markdown("<br>", unsafe_allow_html=True)
     if st.session_state.chat_messages:
-        st.markdown("<h3 style='color: #38BDF8; font-family: Cinzel, serif;'>💬 Research Thread & Reasoning History</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #00F3FF; font-family: Cinzel, serif;'>💬 Research Thread & Reasoning History</h3>", unsafe_allow_html=True)
 
         for idx, msg in enumerate(st.session_state.chat_messages):
             if msg["role"] == "user":
                 st.markdown(
                     f"""
                     <div class="user-chat-bubble">
-                        <strong style="color: #93C5FD;">👤 You:</strong><br>{msg["content"]}
+                        <strong style="color: #00F3FF;">👤 You:</strong><br>{msg["content"]}
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
             elif msg["role"] == "assistant":
                 st.markdown("<div class='ai-chat-bubble'>", unsafe_allow_html=True)
-                st.markdown("<strong style='color: #D4AF37;'>⚖️ NyayaSathi Assistant:</strong><br><br>", unsafe_allow_html=True)
+                st.markdown("<strong style='color: #C084FC;'>⚖️ NyayaSathi Assistant:</strong><br><br>", unsafe_allow_html=True)
                 if isinstance(msg["content"], str):
                     st.markdown(msg["content"])
                 else:
@@ -169,8 +169,8 @@ def render_summarize_document_page(api_key: str, model_name: str):
     # 1. Clean Hero Section
     st.markdown(
         """
-        <div style="background: linear-gradient(135deg, rgba(11, 19, 43, 0.95), rgba(20, 35, 65, 0.9)); border: 1px solid rgba(6, 182, 212, 0.35); border-radius: 12px; padding: 1.8rem; margin-bottom: 1.5rem; text-align: center;">
-            <h1 style="color: #06B6D4; font-family: 'Cinzel', serif; font-size: 2.1rem; margin-bottom: 0.4rem;">
+        <div class="glass-card" style="border-left: 5px solid #00F3FF; padding: 1.8rem; margin-bottom: 1.5rem; text-align: center;">
+            <h1 style="color: #00F3FF; font-family: 'Cinzel', serif; font-size: 2.1rem; margin-bottom: 0.4rem;">
                 📄 Contract Analysis & Legal Interpretation
             </h1>
             <p style="color: #CBD5E1; font-size: 1rem; max-width: 820px; margin: 0 auto; line-height: 1.5;">
@@ -267,14 +267,14 @@ def render_summarize_document_page(api_key: str, model_name: str):
 
     # 4. Results or Professional Friendly Empty State
     if "last_response_summarize_document" in st.session_state:
-        st.markdown("<br><h3 style='color: #06B6D4;'>📜 Contract Analysis & Risk Interpretation</h3>", unsafe_allow_html=True)
+        st.markdown("<br><h3 style='color: #00F3FF;'>📜 Contract Analysis & Risk Interpretation</h3>", unsafe_allow_html=True)
         render_response_cards(st.session_state.last_response_summarize_document, key_prefix="doc_summary")
     else:
         st.markdown(
             """
-            <div style="background: rgba(30, 41, 59, 0.5); border: 1px dashed rgba(6, 182, 212, 0.4); border-radius: 12px; padding: 2.5rem; text-align: center; margin-top: 1rem;">
+            <div style="background: rgba(13, 10, 32, 0.65); border: 1px dashed rgba(0, 243, 255, 0.4); border-radius: 12px; padding: 2.5rem; text-align: center; margin-top: 1rem;">
                 <div style="font-size: 3rem; margin-bottom: 0.6rem;">📁</div>
-                <h3 style="color: #06B6D4; margin-bottom: 0.4rem; font-family: 'Cinzel', serif;">
+                <h3 style="color: #00F3FF; margin-bottom: 0.4rem; font-family: 'Cinzel', serif;">
                     Upload or paste a legal document to begin analysis
                 </h3>
                 <p style="color: #94A3B8; font-size: 0.95rem; max-width: 650px; margin: 0 auto;">
@@ -288,20 +288,20 @@ def render_summarize_document_page(api_key: str, model_name: str):
 
 def render_about_page():
     """Renders the About section with architecture info and technology stack."""
-    st.markdown("<h2 style='color: #F8FAFC;'>ℹ️ About NyayaSathi</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #00F3FF; font-family: \"Cinzel\", serif;'>ℹ️ About NyayaSathi</h2>", unsafe_allow_html=True)
 
     st.markdown(
         """
-        <div class="glass-card" style="border-left: 5px solid #38BDF8;">
-            <div class="card-header">🎯 Project Mission</div>
+        <div class="glass-card" style="border-left: 5px solid #00F3FF;">
+            <div class="card-header" style="color: #00F3FF;">🎯 Project Mission</div>
             <p style="color: #CBD5E1; line-height: 1.7;">
                 <strong>NyayaSathi</strong> is a professional Indian Legal AI Assistant designed to empower citizens, students, and legal researchers with dynamic, conversational legal guidance.
                 Modeled after ChatGPT, Claude, and Perplexity, it analyzes user intent to dynamically format responses with markdown tables, step-by-step numbers, blockquotes, and natural citations without rigid form-filling.
             </p>
         </div>
 
-        <div class="glass-card" style="border-left: 5px solid #8B5CF6;">
-            <div class="card-header">🛠️ Technology Stack & Adaptive Architecture</div>
+        <div class="glass-card" style="border-left: 5px solid #C084FC;">
+            <div class="card-header" style="color: #C084FC;">🛠️ Technology Stack & Adaptive Architecture</div>
             <ul class="card-list">
                 <li><strong>Python 3.11+</strong>: Core application logic and async handlers</li>
                 <li><strong>Groq API</strong>: Ultra-fast LLM inference engine (Llama-3.3-70b-versatile)</li>
