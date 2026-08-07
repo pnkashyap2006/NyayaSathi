@@ -1,22 +1,78 @@
-"""Utility functions for AI Legal Consultant.
+"""Utility functions for NyayaSathi Indian Legal AI Assistant.
 
-Includes sample document loading, markdown report generation, JSON export formatting,
-and logging helpers.
+Includes document text extraction (.pdf, .docx, .txt), markdown report generation,
+JSON export formatting, sample document backend loader, and logging helpers.
 """
 
+import io
 import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from rich.console import Console
 
 from config import SAMPLE_DOCS_DIR
-from parser import LegalResponse
+from parser import ConversationalResponse
 
 console = Console()
 
 
+def extract_text_from_file(uploaded_file) -> str:
+    """Extracts raw text content from uploaded PDF, DOCX, or TXT file objects.
+
+    Args:
+        uploaded_file: Streamlit UploadedFile object.
+
+    Returns:
+        str: Extracted text string.
+    """
+    if uploaded_file is None:
+        return ""
+
+    filename = uploaded_file.name.lower()
+
+    # 1. TXT File Processing
+    if filename.endswith(".txt"):
+        try:
+            return uploaded_file.read().decode("utf-8")
+        except UnicodeDecodeError:
+            uploaded_file.seek(0)
+            return uploaded_file.read().decode("latin-1", errors="ignore")
+
+    # 2. PDF File Processing (pypdf)
+    elif filename.endswith(".pdf"):
+        try:
+            import pypdf
+            reader = pypdf.PdfReader(io.BytesIO(uploaded_file.read()))
+            text_parts = []
+            for page in reader.pages:
+                extracted = page.extract_text()
+                if extracted:
+                    text_parts.append(extracted)
+            return "\n\n".join(text_parts)
+        except Exception as e:
+            console.print(f"[red]PDF Extraction Error ({filename}):[/red] {e}")
+            return f"[Error reading PDF file '{uploaded_file.name}': {e}]"
+
+    # 3. DOCX File Processing (python-docx)
+    elif filename.endswith(".docx") or filename.endswith(".doc"):
+        try:
+            import docx
+            doc = docx.Document(io.BytesIO(uploaded_file.read()))
+            full_text = [para.text for para in doc.paragraphs if para.text.strip()]
+            return "\n\n".join(full_text)
+        except Exception as e:
+            console.print(f"[red]DOCX Extraction Error ({filename}):[/red] {e}")
+            return f"[Error reading DOCX file '{uploaded_file.name}': {e}]"
+
+    # Fallback default read
+    try:
+        return uploaded_file.read().decode("utf-8", errors="ignore")
+    except Exception:
+        return ""
+
+
 def load_sample_documents() -> Dict[str, str]:
-    """Loads text files from sample_documents directory into a dictionary.
+    """Backend utility to load sample documents for testing/modular reuse.
 
     Returns:
         Dict[str, str]: Map of document display titles to document content.
@@ -37,42 +93,28 @@ def load_sample_documents() -> Dict[str, str]:
     return sample_docs
 
 
-def export_response_to_markdown(response: LegalResponse) -> str:
-    """Formats a LegalResponse model into a clean, professional Markdown report.
+def export_response_to_markdown(response: Any) -> str:
+    """Formats a ConversationalResponse model into a clean Markdown export report."""
+    if hasattr(response, "markdown_content"):
+        content = response.markdown_content
+        topic = getattr(response, "legal_topic", "Legal Research Analysis")
+        disclaimer = getattr(response, "disclaimer", "")
 
-    Args:
-        response: Validated LegalResponse object.
+        md_lines = [
+            f"# ⚖ NyayaSathi — {topic}\n",
+            content,
+            "\n---",
+            f"**📢 Legal Notice:** {disclaimer}"
+        ]
+        return "\n".join(md_lines)
 
-    Returns:
-        str: Formatted Markdown string.
-    """
-    md_lines = [
-        f"# ⚖ AI Legal Consultant Analysis",
-        f"### **Topic:** {response.legal_topic}\n",
-        f"---",
-        f"## 📝 Executive Summary",
-        f"{response.summary}\n",
-        f"## 📌 Important Points & Key Clauses",
-    ]
-    for pt in response.important_points:
-        md_lines.append(f"- {pt}")
-
-    md_lines.append("\n## ⚖ Risks & Legal Considerations")
-    for cons in response.possible_considerations:
-        md_lines.append(f"- {cons}")
-
-    md_lines.append("\n## ➡ Suggested Next Steps")
-    for step in response.suggested_next_steps:
-        md_lines.append(f"- {step}")
-
-    md_lines.extend([
-        "\n---",
-        f"**📢 Legal Disclaimer:** {response.disclaimer}"
-    ])
-
-    return "\n".join(md_lines)
+    return str(response)
 
 
-def export_response_to_json_str(response: LegalResponse) -> str:
-    """Converts LegalResponse object to formatted JSON string."""
-    return json.dumps(response.model_dump(), indent=2)
+def export_response_to_json_str(response: Any) -> str:
+    """Converts response object to formatted JSON string."""
+    if hasattr(response, "model_dump"):
+        return json.dumps(response.model_dump(), indent=2)
+    elif hasattr(response, "__dict__"):
+        return json.dumps(response.__dict__, indent=2)
+    return json.dumps({"content": str(response)}, indent=2)

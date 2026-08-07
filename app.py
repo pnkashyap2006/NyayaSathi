@@ -1,7 +1,7 @@
-"""AI Legal Consultant - Main Streamlit Application Entrypoint.
+"""NyayaSathi - Indian Legal AI Assistant Main Entrypoint.
 
-A production-quality Python web application providing structured general legal information,
-contract summarization, and concept explanation using the Groq API.
+Provides a modern, fluid, ChatGPT / Claude style conversational interface for Indian legal research,
+constitutional law exploration, contract review, and statutory guidance.
 """
 
 import time
@@ -9,7 +9,7 @@ import streamlit as st
 
 # Page Configuration MUST be the first Streamlit command
 st.set_page_config(
-    page_title="AI Legal Consultant",
+    page_title="NyayaSathi - Indian Legal AI Assistant",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -21,16 +21,23 @@ from components.sidebar import render_sidebar
 from components.cards import render_response_cards, render_alert_card
 from components.preamble import render_preamble
 from components.constitution import render_constitution
-from components.rights_duties import render_rights_duties
+from components.rights import render_rights_page
+from components.duties import render_duties_page
 from components.judiciary import render_judiciary
 from components.laws import render_laws
-from llm import query_legal_consultant
-from utils import load_sample_documents
+from llm import query_legal_consultant, query_legal_consultant_stream
+from utils import load_sample_documents, extract_text_from_file
 
 
 def main():
     # Inject CSS Design Tokens & Glassmorphism Styles
     inject_custom_css()
+
+    # Initialize Session State
+    if "chat_messages" not in st.session_state:
+        st.session_state.chat_messages = []
+    if "pending_user_input" not in st.session_state:
+        st.session_state.pending_user_input = None
 
     # Render Sidebar Navigation
     sidebar_config = render_sidebar()
@@ -39,20 +46,20 @@ def main():
     selected_model = sidebar_config["selected_model"]
 
     # Main Page Routing
-    if current_mode == "home":
-        render_home_page()
+    if current_mode == "home" or current_mode == "ai_assistant":
+        render_chat_assistant_page(api_key, selected_model)
     elif current_mode == "preamble":
         render_preamble()
     elif current_mode == "constitution":
         render_constitution()
-    elif current_mode == "rights" or current_mode == "duties":
-        render_rights_duties()
+    elif current_mode == "rights":
+        render_rights_page()
+    elif current_mode == "duties":
+        render_duties_page()
     elif current_mode == "judiciary":
         render_judiciary()
     elif current_mode == "laws":
         render_laws()
-    elif current_mode == "ai_assistant":
-        render_ask_question_page(api_key, selected_model)
     elif current_mode == "summarize_document":
         render_summarize_document_page(api_key, selected_model)
     elif current_mode == "about":
@@ -62,258 +69,254 @@ def main():
     render_footer()
 
 
-def render_home_page():
-    """Renders the high-impact landing page with feature cards and quick starters."""
+def render_chat_assistant_page(api_key: str, model_name: str):
+    """Renders the primary ChatGPT-style Legal AI Assistant interface with fluid Markdown streaming & memory."""
     render_hero_banner()
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # Feature Grid
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.markdown(
-            """
-            <div class="glass-card" style="text-align: center; min-height: 250px;">
-                <div style="font-size: 2.8rem; margin-bottom: 0.8rem;">📜</div>
-                <div style="font-size: 1.25rem; font-weight: 700; color: #D4AF37; margin-bottom: 0.5rem;">The Constitution</div>
-                <p style="color: #E2E8F0; font-size: 0.95rem; line-height: 1.6;">
-                    Explore the fundamental law of India. From the Preamble to the Directive Principles.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        if st.button("Explore Constitution ➡", key="btn_home_const", use_container_width=True):
-            st.session_state.navigation_mode = "constitution"
-            st.rerun()
-
-    with col2:
-        st.markdown(
-            """
-            <div class="glass-card" style="text-align: center; min-height: 250px;">
-                <div style="font-size: 2.8rem; margin-bottom: 0.8rem;">⚖️</div>
-                <div style="font-size: 1.25rem; font-weight: 700; color: #FF9933; margin-bottom: 0.5rem;">Legal Assistant</div>
-                <p style="color: #E2E8F0; font-size: 0.95rem; line-height: 1.6;">
-                    Ask questions about Bharatiya Nyaya Sanhita, Consumer Protection Act, and more.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        if st.button("Ask Legal Question ➡", key="btn_home_ask", use_container_width=True):
-            st.session_state.navigation_mode = "ai_assistant"
-            st.rerun()
-
-    with col3:
-        st.markdown(
-            """
-            <div class="glass-card" style="text-align: center; min-height: 250px;">
-                <div style="font-size: 2.8rem; margin-bottom: 0.8rem;">📄</div>
-                <div style="font-size: 1.25rem; font-weight: 700; color: #138808; margin-bottom: 0.5rem;">Summarize Documents</div>
-                <p style="color: #E2E8F0; font-size: 0.95rem; line-height: 1.6;">
-                    Paste contracts or legal notices to extract important clauses, risks, and related Acts.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        if st.button("Summarize Document ➡", key="btn_home_doc", use_container_width=True):
-            st.session_state.navigation_mode = "summarize_document"
-            st.rerun()
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # Quick Start Preset Triggers Banner
+    # Starter Preset Examples Banner
     st.markdown(
         """
-        <div class="glass-card" style="border-left: 5px solid #FF9933;">
-            <div class="card-header">⚡ Quick Start Examples</div>
-            <p style="color: #CBD5E1; margin-bottom: 1rem;">
-                Click any preset below to instantly jump into query analysis:
+        <div class="glass-card" style="border-left: 5px solid #FF9933; margin-bottom: 1.5rem;">
+            <div class="card-header" style="margin-bottom: 0.4rem;">⚡ Quick Research Starters</div>
+            <p style="color: #CBD5E1; margin-bottom: 0.8rem; font-size: 0.92rem;">
+                Click any prompt below to experience dynamic, intent-adaptive legal reasoning:
             </p>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    qcol1, qcol2, qcol3 = st.columns(3)
+    qcol1, qcol2, qcol3, qcol4 = st.columns(4)
 
+    preset_clicked = None
     with qcol1:
-        if st.button("📜 Explain Article 21", use_container_width=True):
-            st.session_state.preset_query = "Explain Article 21 of the Indian Constitution."
-            st.session_state.navigation_mode = "ai_assistant"
-            st.rerun()
-
+        if st.button("📜 Explain Article 21", use_container_width=True, key="p1_chat"):
+            preset_clicked = "Explain Article 21 of the Indian Constitution."
     with qcol2:
-        if st.button("⚖️ What is Zero FIR?", use_container_width=True):
-            st.session_state.preset_query = "What is a Zero FIR under BNSS?"
-            st.session_state.navigation_mode = "ai_assistant"
-            st.rerun()
-
+        if st.button("⚖️ Difference: BNS vs IPC", use_container_width=True, key="p2_chat"):
+            preset_clicked = "What is the difference between Bharatiya Nyaya Sanhita (BNS) and IPC?"
     with qcol3:
-        if st.button("🛡️ Right to Information", use_container_width=True):
-            st.session_state.preset_query = "How do I file an RTI?"
-            st.session_state.navigation_mode = "ai_assistant"
+        if st.button("🏠 Landlord Deposit Dispute", use_container_width=True, key="p3_chat"):
+            preset_clicked = "My landlord refuses to refund my security deposit after lease ended. What are my legal remedies?"
+    with qcol4:
+        if st.button("👮 Arrest Without Warrant", use_container_width=True, key="p4_chat"):
+            preset_clicked = "Can police arrest me without a warrant under BNSS?"
+
+    # Check pending follow-up chip clicks or preset clicks
+    active_prompt = preset_clicked or st.session_state.pop("pending_user_input", None)
+
+    # Render Chat History Thread
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.session_state.chat_messages:
+        st.markdown("<h3 style='color: #38BDF8; font-family: Cinzel, serif;'>💬 Research Thread & Reasoning History</h3>", unsafe_allow_html=True)
+
+        for idx, msg in enumerate(st.session_state.chat_messages):
+            if msg["role"] == "user":
+                st.markdown(
+                    f"""
+                    <div class="user-chat-bubble">
+                        <strong style="color: #93C5FD;">👤 You:</strong><br>{msg["content"]}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            elif msg["role"] == "assistant":
+                st.markdown("<div class='ai-chat-bubble'>", unsafe_allow_html=True)
+                st.markdown("<strong style='color: #D4AF37;'>⚖️ NyayaSathi Assistant:</strong><br><br>", unsafe_allow_html=True)
+                if isinstance(msg["content"], str):
+                    st.markdown(msg["content"])
+                else:
+                    render_response_cards(msg["content"], metadata=msg.get("metadata"), key_prefix=f"msg_{idx}")
+                st.markdown("</div>", unsafe_allow_html=True)
+
+        if st.button("🗑️ Clear Conversation History", key="btn_clear_history"):
+            st.session_state.chat_messages = []
             st.rerun()
 
+    # Sticky Bottom Chat Input Box
+    user_input = st.chat_input("Ask a legal question, describe a situation, or paste a document clause...") or active_prompt
 
-def render_ask_question_page(api_key: str, model_name: str):
-    """Renders Mode 1: Ask Legal Question Interface."""
-    st.markdown("<h2 style='color: #F8FAFC;'>❓ Ask a Legal Question</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #94A3B8;'>Get structured general legal information on rights, remedies, and procedures.</p>", unsafe_allow_html=True)
+    if user_input:
+        user_text = user_input.strip()
 
-    # Preset selector buttons
-    st.markdown("<div style='font-size: 0.9rem; font-weight: 600; color: #38BDF8; margin-bottom: 0.4rem;'>Sample Questions:</div>", unsafe_allow_html=True)
-    pcol1, pcol2, pcol3 = st.columns(3)
+        # Append User Message to Thread
+        st.session_state.chat_messages.append({"role": "user", "content": user_text})
 
-    preset_val = st.session_state.pop("preset_query", "")
+        # Process Query with Loading Indicator
+        with st.spinner("⚖️ NyayaSathi is identifying legal issues & rendering adaptive analysis..."):
+            history = [
+                {"role": m["role"], "content": m["content"] if isinstance(m["content"], str) else m["content"].markdown_content}
+                for m in st.session_state.chat_messages[:-1]
+            ]
 
-    with pcol1:
-        if st.button("Explain Article 21", key="p1"):
-            preset_val = "Explain Article 21 of the Indian Constitution."
+            response_data, error_msg, metadata = query_legal_consultant(
+                user_query=user_text,
+                api_key=api_key,
+                model_name=model_name,
+                history=history
+            )
 
-    with pcol2:
-        if st.button("What is Zero FIR?", key="p2"):
-            preset_val = "What is a Zero FIR under BNSS?"
+        if error_msg:
+            st.session_state.chat_messages.append({"role": "assistant", "content": f"⚠️ {error_msg}", "metadata": metadata})
+        elif response_data:
+            st.session_state.chat_messages.append({"role": "assistant", "content": response_data, "metadata": metadata})
 
-    with pcol3:
-        if st.button("Right to Information", key="p3"):
-            preset_val = "How do I file an RTI?"
-
-    # Input Text Area
-    user_input = st.text_area(
-        label="Enter your legal question:",
-        value=preset_val if preset_val else st.session_state.get("q_input", ""),
-        height=140,
-        placeholder="Type your question here (e.g. What are my rights if my employment is terminated without notice?)...",
-        key="q_input_field"
-    )
-
-    if st.button("⚖️ Analyze Legal Query", use_container_width=True, key="btn_submit_q"):
-        if not user_input.strip():
-            render_alert_card("Empty Query Input", "Please enter a valid legal question before submitting.", alert_type="warning")
-            return
-
-        run_legal_analysis(mode="ask_question", user_query=user_input, api_key=api_key, model_name=model_name)
-
-    # Render previous cached response if exists
-    if "last_response_ask_question" in st.session_state:
-        st.markdown("<br><h3 style='color: #38BDF8;'>Analysis Result</h3>", unsafe_allow_html=True)
-        render_response_cards(st.session_state.last_response_ask_question)
-
-
-def render_explain_concept_page(api_key: str, model_name: str):
-    """Renders Mode 2: Explain Legal Concept Interface."""
-    st.markdown("<h2 style='color: #F8FAFC;'>📚 Explain Legal Concept</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #94A3B8;'>Deconstruct complex legal terminology, contracts, and statutory concepts.</p>", unsafe_allow_html=True)
-
-    # Preset concept buttons
-    st.markdown("<div style='font-size: 0.9rem; font-weight: 600; color: #8B5CF6; margin-bottom: 0.4rem;'>Popular Concepts:</div>", unsafe_allow_html=True)
-    ccol1, ccol2, ccol3, ccol4 = st.columns(4)
-
-    preset_concept = ""
-    with ccol1:
-        if st.button("Non Disclosure Agreement", key="c1"):
-            preset_concept = "Non Disclosure Agreement"
-    with ccol2:
-        if st.button("Power of Attorney", key="c2"):
-            preset_concept = "Power of Attorney"
-    with ccol3:
-        if st.button("Arbitration", key="c3"):
-            preset_concept = "Arbitration"
-    with ccol4:
-        if st.button("FIR (First Info Report)", key="c4"):
-            preset_concept = "FIR"
-
-    user_concept = st.text_input(
-        label="Enter legal concept or term:",
-        value=preset_concept if preset_concept else st.session_state.get("c_input", ""),
-        placeholder="e.g. Force Majeure, Intellectual Property, Indenture...",
-        key="c_input_field"
-    )
-
-    if st.button("🔍 Explain Concept", use_container_width=True, key="btn_submit_c"):
-        if not user_concept.strip():
-            render_alert_card("Empty Concept Input", "Please enter a legal concept or select a preset.", alert_type="warning")
-            return
-
-        run_legal_analysis(mode="explain_concept", user_query=user_concept, api_key=api_key, model_name=model_name)
-
-    if "last_response_explain_concept" in st.session_state:
-        st.markdown("<br><h3 style='color: #8B5CF6;'>Concept Explanation Result</h3>", unsafe_allow_html=True)
-        render_response_cards(st.session_state.last_response_explain_concept)
+        st.rerun()
 
 
 def render_summarize_document_page(api_key: str, model_name: str):
-    """Renders Mode 3: Summarize Legal Document Interface."""
-    st.markdown("<h2 style='color: #F8FAFC;'>📄 Summarize Legal Document</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #94A3B8;'>Extract executive summary, parties, important clauses, risks, obligations, and deadlines.</p>", unsafe_allow_html=True)
-
-    # Sample Document Selector
-    sample_docs = load_sample_documents()
-    selected_sample = st.selectbox(
-        label="Load a Sample Document (Optional):",
-        options=["-- Select a Sample Document --"] + list(sample_docs.keys())
+    """Renders Premium Contract Analysis & Legal Interpretation Interface (Harvey AI / Lexis+ style)."""
+    # 1. Clean Hero Section
+    st.markdown(
+        """
+        <div style="background: linear-gradient(135deg, rgba(11, 19, 43, 0.95), rgba(20, 35, 65, 0.9)); border: 1px solid rgba(6, 182, 212, 0.35); border-radius: 12px; padding: 1.8rem; margin-bottom: 1.5rem; text-align: center;">
+            <h1 style="color: #06B6D4; font-family: 'Cinzel', serif; font-size: 2.1rem; margin-bottom: 0.4rem;">
+                📄 Contract Analysis & Legal Interpretation
+            </h1>
+            <p style="color: #CBD5E1; font-size: 1rem; max-width: 820px; margin: 0 auto; line-height: 1.5;">
+                Understand contracts, identify legal risks, explain complex clauses, and receive practical legal insights in simple language.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
-    initial_doc_text = ""
-    if selected_sample and selected_sample != "-- Select a Sample Document --":
-        initial_doc_text = sample_docs.get(selected_sample, "")
+    # 2. Input Options Layout (Option 1: Paste Text, Option 2: Upload File)
+    tab_paste, tab_upload = st.tabs([
+        "✍️ Option 1: Paste Contract Text",
+        "📁 Option 2: Upload Document (PDF, DOCX, TXT)"
+    ])
 
-    user_doc = st.text_area(
-        label="Paste legal text or contract snippet below:",
-        value=initial_doc_text if initial_doc_text else st.session_state.get("d_input", ""),
-        height=220,
-        placeholder="Paste contract text, agreement clauses, or legal notice here...",
-        key="d_input_field"
+    user_doc = ""
+
+    with tab_paste:
+        placeholder_text = (
+            "Paste your legal document here...\n\n"
+            "Supported:\n"
+            "• Employment Contracts\n"
+            "• Rental Agreements\n"
+            "• NDAs\n"
+            "• Partnership Agreements\n"
+            "• Service Agreements\n"
+            "• Legal Notices\n"
+            "• Privacy Policies"
+        )
+        pasted_text = st.text_area(
+            label="Contract Editor",
+            height=260,
+            placeholder=placeholder_text,
+            key="d_input_editor",
+            label_visibility="collapsed"
+        )
+        if pasted_text:
+            user_doc = pasted_text
+
+    with tab_upload:
+        st.markdown(
+            """
+            <div style="margin-bottom: 0.5rem; font-size: 0.95rem; color: #94A3B8;">
+                Upload your agreement for instant legal risk analysis and clause breakdown:
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        uploaded_file = st.file_uploader(
+            label="📁 Drag & Drop Contract Here or Click to Upload",
+            type=["pdf", "docx", "txt"],
+            key="contract_file_uploader"
+        )
+        if uploaded_file is not None:
+            extracted = extract_text_from_file(uploaded_file)
+            if extracted and not extracted.startswith("[Error"):
+                user_doc = extracted
+                st.success(f"✓ Loaded '{uploaded_file.name}' ({len(extracted)} characters extracted)")
+                with st.expander("👁️ View Extracted Text Preview", expanded=False):
+                    st.text(extracted[:1000] + ("..." if len(extracted) > 1000 else ""))
+            elif extracted.startswith("[Error"):
+                st.error(extracted)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 3. CTA Button & Subtitle
+    col_btn, _ = st.columns([1, 1])
+    with col_btn:
+        analyze_clicked = st.button("🔍 Analyze Contract", use_container_width=True, key="btn_submit_d")
+
+    st.markdown(
+        """
+        <p style="color: #64748B; font-size: 0.85rem; margin-top: -0.4rem; margin-bottom: 1.5rem;">
+            <i>AI-powered clause interpretation, legal risk analysis, and practical recommendations.</i>
+        </p>
+        """,
+        unsafe_allow_html=True
     )
 
-    if st.button("⚡ Generate Structured Summary", use_container_width=True, key="btn_submit_d"):
+    if analyze_clicked:
         if not user_doc.strip():
-            render_alert_card("Empty Document Input", "Please paste legal text or select a sample document.", alert_type="warning")
+            st.markdown(
+                """
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1rem; border-radius: 8px; color: #FCA5A5; margin-bottom: 1rem;">
+                    <b>Document Required:</b> Please paste text or upload a PDF/DOCX/TXT contract file to analyze.
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
             return
 
-        run_legal_analysis(mode="summarize_document", user_query=user_doc, api_key=api_key, model_name=model_name)
+        run_legal_analysis(mode="Legal Document Summarization", user_query=user_doc, api_key=api_key, model_name=model_name)
 
+    # 4. Results or Professional Friendly Empty State
     if "last_response_summarize_document" in st.session_state:
-        st.markdown("<br><h3 style='color: #06B6D4;'>Document Summary Breakdown</h3>", unsafe_allow_html=True)
-        render_response_cards(st.session_state.last_response_summarize_document)
+        st.markdown("<br><h3 style='color: #06B6D4;'>📜 Contract Analysis & Risk Interpretation</h3>", unsafe_allow_html=True)
+        render_response_cards(st.session_state.last_response_summarize_document, key_prefix="doc_summary")
+    else:
+        st.markdown(
+            """
+            <div style="background: rgba(30, 41, 59, 0.5); border: 1px dashed rgba(6, 182, 212, 0.4); border-radius: 12px; padding: 2.5rem; text-align: center; margin-top: 1rem;">
+                <div style="font-size: 3rem; margin-bottom: 0.6rem;">📁</div>
+                <h3 style="color: #06B6D4; margin-bottom: 0.4rem; font-family: 'Cinzel', serif;">
+                    Upload or paste a legal document to begin analysis
+                </h3>
+                <p style="color: #94A3B8; font-size: 0.95rem; max-width: 650px; margin: 0 auto;">
+                    NyayaSathi will identify important clauses, explain their meaning in simple language, highlight legal risks, and provide practical legal insights.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
 def render_about_page():
     """Renders the About section with architecture info and technology stack."""
-    st.markdown("<h2 style='color: #F8FAFC;'>ℹ️ About AI Legal Consultant</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #F8FAFC;'>ℹ️ About NyayaSathi</h2>", unsafe_allow_html=True)
 
     st.markdown(
         """
         <div class="glass-card" style="border-left: 5px solid #38BDF8;">
             <div class="card-header">🎯 Project Mission</div>
             <p style="color: #CBD5E1; line-height: 1.7;">
-                <strong>AI Legal Consultant</strong> bridges the gap between complex legal jargon and everyday user understanding.
-                Powered by Groq's high-speed inference engine, Pydantic validation, and Streamlit, it provides reliable, structured, 
-                and instant general legal information without the cost or friction of traditional initial research.
+                <strong>NyayaSathi</strong> is a professional Indian Legal AI Assistant designed to empower citizens, students, and legal researchers with dynamic, conversational legal guidance.
+                Modeled after ChatGPT, Claude, and Perplexity, it analyzes user intent to dynamically format responses with markdown tables, step-by-step numbers, blockquotes, and natural citations without rigid form-filling.
             </p>
         </div>
 
         <div class="glass-card" style="border-left: 5px solid #8B5CF6;">
-            <div class="card-header">🛠️ Technology Stack</div>
+            <div class="card-header">🛠️ Technology Stack & Adaptive Architecture</div>
             <ul class="card-list">
-                <li><strong>Python 3.11+</strong>: Core application logic</li>
-                <li><strong>Groq API</strong>: Ultra-fast LLM inference (Llama-3.3-70b-versatile)</li>
-                <li><strong>Streamlit</strong>: Modern web client framework</li>
-                <li><strong>Pydantic v2</strong>: Strict JSON schema definition & response validation</li>
-                <li><strong>Rich</strong>: High-fidelity terminal logging & diagnostics</li>
-                <li><strong>Vanilla CSS</strong>: Custom dark theme glassmorphic design system</li>
+                <li><strong>Python 3.11+</strong>: Core application logic and async handlers</li>
+                <li><strong>Groq API</strong>: Ultra-fast LLM inference engine (Llama-3.3-70b-versatile)</li>
+                <li><strong>Adaptive Markdown Engine</strong>: Dynamic GFM Markdown generation tailored to query intent</li>
+                <li><strong>Modular Knowledge Layer</strong>: RAG-ready retrievers supporting FAISS, ChromaDB, Pinecone, & Govt legal datasets</li>
+                <li><strong>Streamlit</strong>: Modern web client with custom dark glassmorphic design</li>
             </ul>
         </div>
 
         <div class="glass-card" style="border-left: 5px solid #EF4444; background: rgba(239, 68, 68, 0.05);">
-            <div class="card-header" style="color: #F87171;">⚠️ Compliance & Legal Notice</div>
+            <div class="card-header" style="color: #F87171;">⚠️ Legal Disclaimer & Compliance</div>
             <p style="color: #FCA5A5; line-height: 1.6;">
-                This application does not provide attorney-client representation or formal legal advice.
-                Outputs are generated by an artificial intelligence model for educational and informational purposes only.
-                Always consult a licensed attorney in your jurisdiction prior to taking legal action or executing binding agreements.
+                NyayaSathi provides general legal information for educational and research purposes only.
+                It does not constitute professional legal advice or an attorney-client relationship.
+                Always consult a licensed advocate in your local jurisdiction prior to taking legal action or executing binding agreements.
             </p>
         </div>
         """,
@@ -322,30 +325,24 @@ def render_about_page():
 
 
 def run_legal_analysis(mode: str, user_query: str, api_key: str, model_name: str):
-    """Executes the legal query with progress indicators and saves response into session state."""
+    """Executes legal query for standalone document summarization mode."""
     progress_placeholder = st.empty()
 
     with progress_placeholder.container():
         st.markdown("<div class='shimmer-progress'></div>", unsafe_allow_html=True)
-        status_box = st.info("🔄 Phase 1/3: Analyzing legal query & parsing intent...")
-
-    time.sleep(0.4)
-    with progress_placeholder.container():
-        st.markdown("<div class='shimmer-progress'></div>", unsafe_allow_html=True)
-        status_box = st.info("🔍 Phase 2/3: Reviewing legal concepts against statutory frameworks...")
-
-    # Execute LLM query
-    response_data, error_msg = query_legal_consultant(
-        mode=mode,
-        user_query=user_query,
-        api_key=api_key,
-        model_name=model_name
-    )
+        status_box = st.info("🔄 Phase 1/3: Analyzing document text & identifying clauses...")
 
     time.sleep(0.3)
     with progress_placeholder.container():
         st.markdown("<div class='shimmer-progress'></div>", unsafe_allow_html=True)
-        status_box = st.info("✨ Phase 3/3: Preparing structured JSON response cards...")
+        status_box = st.info("🔍 Phase 2/3: Evaluating statutory obligations & risk factors...")
+
+    response_data, error_msg, metadata = query_legal_consultant(
+        user_query=user_query,
+        api_key=api_key,
+        model_name=model_name,
+        mode=mode
+    )
 
     time.sleep(0.3)
     progress_placeholder.empty()
@@ -355,9 +352,7 @@ def run_legal_analysis(mode: str, user_query: str, api_key: str, model_name: str
         return
 
     if response_data:
-        # Cache response in session state according to current mode
-        state_key = f"last_response_{mode}"
-        st.session_state[state_key] = response_data
+        st.session_state["last_response_summarize_document"] = response_data
         st.rerun()
 
 

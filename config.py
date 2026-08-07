@@ -20,23 +20,33 @@ LOGO_PATH = ASSETS_DIR / "logo.png"
 # App Metadata
 APP_NAME = "Indian Legal AI Assistant"
 APP_TAGLINE = "Explore the Constitution. Understand Your Rights. Learn Indian Law."
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 
 # Legal Disclaimer
 DEFAULT_DISCLAIMER = (
-    "This application provides general information about Indian law for educational purposes only. "
-    "It is not a substitute for professional legal advice. Consult a qualified Indian attorney for legal guidance."
+    "This application provides general legal information for educational and research purposes only under Indian law. "
+    "It is not formal legal advice or an attorney-client relationship. Consult a qualified advocate for advice tailored to your jurisdiction."
 )
 
 # Groq API Configuration
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+_env_key = os.getenv("GROQ_API_KEY", "").strip()
+
+if not _env_key or _env_key == "your_groq_api_key_here":
+    api_txt_path = Path("C:/Users/SIC/Desktop/API.txt")
+    if api_txt_path.exists():
+        try:
+            _env_key = api_txt_path.read_text(encoding="utf-8").strip()
+        except Exception:
+            pass
+
+GROQ_API_KEY = _env_key
 DEFAULT_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 AVAILABLE_MODELS = [
     "llama-3.3-70b-versatile",
     "llama-3.1-70b-versatile",
-    "mixtral-8x7b-32768",
-    "gemma2-9b-it"
+    "llama3-70b-8192",
+    "mixtral-8x7b-32768"
 ]
 
 # UI Color Tokens

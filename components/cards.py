@@ -1,175 +1,130 @@
-"""Response cards rendering component for AI Legal Consultant.
+"""Fluid ChatGPT-Style Response Renderer for NyayaSathi Indian Legal AI Assistant.
 
-Renders structured JSON outputs into glassmorphism cards with colored left borders,
-action bars, copy buttons, and formatted alert components.
+Completely replaces fixed report cards and JSON viewer UI with an elegant, dynamic,
+conversational response interface supporting rich GFM Markdown, tables, lists, codeblocks,
+expandable references, and interactive follow-up question chips.
 """
 
 import streamlit as st
-from parser import LegalResponse
+from typing import Optional, Dict, Any
+from parser import ConversationalResponse
 from utils import export_response_to_markdown, export_response_to_json_str
 
 
-def render_response_cards(response: LegalResponse):
-    """Renders all 6 structured response cards from a LegalResponse object.
+def render_response_cards(response: ConversationalResponse, metadata: Optional[Dict[str, Any]] = None, key_prefix: str = ""):
+    """Renders a single fluid, dynamic ChatGPT-style assistant response.
 
-    Cards:
-    1. 📌 Legal Topic
-    2. 📝 Summary
-    3. ⚠ Important Points
-    4. ⚖ Possible Considerations
-    5. ➡ Suggested Next Steps
-    6. 📢 Disclaimer
+    Args:
+        response: ConversationalResponse Pydantic object.
+        metadata: Optional metadata dictionary containing emergency info, intent, sources.
+        key_prefix: Unique key prefix for Streamlit widgets.
     """
     if not response:
         return
 
-    # Card 1: Legal Topic
+    prefix = f"{key_prefix}_" if key_prefix else ""
+
+    # 1. Emergency Helpline Alert Banner (if high-risk emergency situation detected)
+    if metadata and metadata.get("emergency"):
+        em = metadata["emergency"]
+        st.markdown(
+            f"""
+            <div class="emergency-banner">
+                <div class="emergency-title">{em['title']}</div>
+                <div style="color: #FEE2E2; font-size: 0.95rem; line-height: 1.6;">
+                    {em['message']}
+                </div>
+                <div style="margin-top: 0.8rem;">
+                    <span style="color: #F87171; font-weight: 600;">Official Helpline: </span>
+                    <span class="emergency-helpline">📞 {em['helpline']}</span>
+                    <span style="margin-left: 1rem; color: #CBD5E1; font-size: 0.85rem;">
+                        Portal: <a href="{em['website']}" target="_blank" style="color: #38BDF8; text-decoration: underline;">{em['website']}</a>
+                    </span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # 2. Main Fluid Response Container (Rich Markdown Output)
+    markdown_text = response.markdown_content
+    st.markdown(markdown_text)
+
+    # 3. Expandable Authoritative References (if relevant references exist)
+    refs = response.references or (metadata.get("sources") if metadata else [])
+    if refs:
+        refs_html = "".join([f'<span class="badge-ref-law">✓ {r}</span>' for r in refs])
+        st.markdown(
+            f"""
+            <div class="reasoning-card" style="margin-top: 1rem; padding: 0.8rem 1.2rem;">
+                <details>
+                    <summary style="font-size: 0.9rem; color: #94A3B8;">📚 View Authoritative Legal References ({len(refs)})</summary>
+                    <div style="margin-top: 0.6rem;">
+                        {refs_html}
+                    </div>
+                </details>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # 4. Interactive Suggested Follow-Up Question Chips
+    if response.follow_up_questions:
+        st.markdown(
+            """
+            <div style="margin-top: 1.2rem; margin-bottom: 0.5rem; font-weight: 600; color: #D4AF37; font-size: 0.9rem;">
+                💡 Suggested Follow-Up Questions:
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        cols = st.columns(min(len(response.follow_up_questions), 3))
+        for idx, q_text in enumerate(response.follow_up_questions):
+            col_idx = idx % len(cols)
+            with cols[col_idx]:
+                if st.button(f"🔍 {q_text}", key=f"{prefix}btn_followup_{idx}_{abs(hash(q_text))}", use_container_width=True):
+                    st.session_state.pending_user_input = q_text
+                    st.rerun()
+
+    # 5. Mandatory Legal Safety Disclaimer
     st.markdown(
         f"""
-        <div class="glass-card card-legal-topic">
-            <div class="card-header">📌 Legal Topic</div>
-            <div style="font-size: 1.15rem; font-weight: 700; color: #38BDF8;">
-                {response.legal_topic}
-            </div>
+        <div style="margin-top: 1rem; padding: 0.6rem 1rem; border-left: 3px solid #EF4444; background: rgba(239, 68, 68, 0.05); border-radius: 6px; font-size: 0.8rem; color: #FCA5A5;">
+            ⚠️ <strong>Legal Notice:</strong> {response.disclaimer}
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    # Card 2: Executive Summary
-    st.markdown(
-        f"""
-        <div class="glass-card card-summary">
-            <div class="card-header">📝 Executive Summary</div>
-            <div style="font-size: 1.02rem; line-height: 1.7; color: #E2E8F0;">
-                {response.summary}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # Card 3: Important Points & Clauses
-    if response.important_points:
-        points_html = "".join([f"<li>{pt}</li>" for pt in response.important_points])
-        st.markdown(
-            f"""
-            <div class="glass-card card-important-points">
-                <div class="card-header">⚠ Important Points & Parties</div>
-                <ul class="card-list">
-                    {points_html}
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    # Card 3.1: Constitutional Articles
-    if response.constitutional_articles:
-        articles_html = "".join([f"<li>{pt}</li>" for pt in response.constitutional_articles])
-        st.markdown(
-            f"""
-            <div class="glass-card card-articles">
-                <div class="card-header">📖 Constitutional Articles</div>
-                <ul class="card-list">
-                    {articles_html}
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    # Card 3.2: Related Acts
-    if response.related_acts:
-        acts_html = "".join([f"<li>{pt}</li>" for pt in response.related_acts])
-        st.markdown(
-            f"""
-            <div class="glass-card card-acts">
-                <div class="card-header">📚 Related Indian Acts</div>
-                <ul class="card-list">
-                    {acts_html}
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    # Card 4: Legal Considerations & Risks
-    if response.possible_considerations:
-        cons_html = "".join([f"<li>{c}</li>" for c in response.possible_considerations])
-        st.markdown(
-            f"""
-            <div class="glass-card card-considerations">
-                <div class="card-header">⚖ Possible Considerations & Risks</div>
-                <ul class="card-list">
-                    {cons_html}
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    # Card 5: Suggested Next Steps
-    if response.suggested_next_steps:
-        steps_html = "".join([f"<li>{s}</li>" for s in response.suggested_next_steps])
-        st.markdown(
-            f"""
-            <div class="glass-card card-next-steps">
-                <div class="card-header">➡ Suggested Next Steps</div>
-                <ul class="card-list">
-                    {steps_html}
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    # Card 6: Mandatory Legal Disclaimer
-    st.markdown(
-        f"""
-        <div class="glass-card card-disclaimer">
-            <div class="card-header" style="color: #F87171;">📢 Legal Disclaimer</div>
-            <div style="font-size: 0.92rem; color: #FCA5A5; line-height: 1.6;">
-                {response.disclaimer}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # Export Action Buttons Bar
+    # 6. Action & Export Toolbar
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
 
     with col1:
         md_text = export_response_to_markdown(response)
         st.download_button(
-            label="📥 Download Markdown Report",
+            label="📥 Export Markdown",
             data=md_text,
             file_name=f"{response.legal_topic.lower().replace(' ', '_')}_analysis.md",
             mime="text/markdown",
-            use_container_width=True
+            use_container_width=True,
+            key=f"{prefix}dl_md_{abs(hash(response.legal_topic))}"
         )
 
     with col2:
         json_text = export_response_to_json_str(response)
         st.download_button(
-            label="📄 Export Raw JSON Schema",
+            label="📄 Export Raw JSON",
             data=json_text,
             file_name=f"{response.legal_topic.lower().replace(' ', '_')}_schema.json",
             mime="application/json",
-            use_container_width=True
+            use_container_width=True,
+            key=f"{prefix}dl_json_{abs(hash(response.legal_topic))}"
         )
 
 
 def render_alert_card(title: str, message: str, alert_type: str = "warning"):
-    """Renders a styled error or warning alert card.
-
-    Args:
-        title: Alert headline.
-        message: Detailed explanation.
-        alert_type: 'error', 'warning', or 'info'.
-    """
+    """Renders a styled error or warning alert card."""
     color_map = {
         "error": {"border": "#EF4444", "bg": "rgba(239, 68, 68, 0.1)", "icon": "❌"},
         "warning": {"border": "#F59E0B", "bg": "rgba(245, 158, 11, 0.1)", "icon": "⚠️"},

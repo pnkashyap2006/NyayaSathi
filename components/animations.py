@@ -317,15 +317,117 @@ def inject_custom_css():
         margin-top: 3rem;
     }
 
-    .footer-badge {
-        display: inline-block;
-        background: rgba(11, 19, 43, 0.8);
-        border: 1px solid rgba(212, 175, 55, 0.3);
-        padding: 0.3rem 0.8rem;
-        border-radius: 20px;
-        color: #D4AF37;
-        font-size: 0.8rem;
+    /* Emergency Helpline Banner */
+    .emergency-banner {
+        background: linear-gradient(135deg, rgba(220, 38, 38, 0.25) 0%, rgba(153, 27, 27, 0.35) 100%);
+        border-left: 6px solid #EF4444;
+        border-radius: 12px;
+        padding: 1.2rem 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+        animation: pulseGlow 2s infinite;
+    }
+    .emergency-title {
+        font-weight: 700;
+        color: #F87171;
+        font-size: 1.15rem;
         margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .emergency-helpline {
+        display: inline-block;
+        background: #DC2626;
+        color: #FFFFFF;
+        font-weight: 700;
+        padding: 0.3rem 0.8rem;
+        border-radius: 8px;
+        font-size: 1.05rem;
+        margin-top: 0.5rem;
+    }
+
+    /* Official Reference Badges */
+    .badge-ref-law {
+        display: inline-flex;
+        align-items: center;
+        background: rgba(59, 130, 246, 0.15);
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        color: #60A5FA;
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 0.2rem;
+    }
+    .badge-ref-constitution {
+        display: inline-flex;
+        align-items: center;
+        background: rgba(212, 175, 55, 0.15);
+        border: 1px solid rgba(212, 175, 55, 0.4);
+        color: #FBBF24;
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 0.2rem;
+    }
+
+    /* Collapsible Legal Reasoning Card */
+    .reasoning-card {
+        background: rgba(15, 23, 42, 0.75);
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        border-radius: 12px;
+        padding: 1.2rem;
+        margin: 1rem 0;
+        backdrop-filter: blur(10px);
+    }
+    .reasoning-card details summary {
+        cursor: pointer;
+        font-weight: 700;
+        color: #D4AF37;
+        font-size: 1.05rem;
+        outline: none;
+        user-select: none;
+    }
+    .reasoning-content {
+        margin-top: 1rem;
+        color: #E2E8F0;
+        line-height: 1.7;
+        font-size: 0.95rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 1rem;
+    }
+
+    /* Chat Bubbles & Prompt Chips */
+    .user-chat-bubble {
+        background: linear-gradient(135deg, rgba(30, 58, 138, 0.7) 0%, rgba(30, 64, 175, 0.5) 100%);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 18px 18px 4px 18px;
+        padding: 1rem 1.25rem;
+        color: #F8FAFC;
+        margin-bottom: 1rem;
+        margin-left: 2rem;
+    }
+    .ai-chat-bubble {
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(212, 175, 55, 0.25);
+        border-radius: 18px 18px 18px 4px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        backdrop-filter: blur(12px);
+    }
+    .prompt-chip-btn {
+        background: rgba(30, 41, 59, 0.8) !important;
+        border: 1px solid rgba(212, 175, 55, 0.3) !important;
+        color: #F1F5F9 !important;
+        border-radius: 20px !important;
+        transition: all 0.2s ease !important;
+    }
+    .prompt-chip-btn:hover {
+        background: rgba(212, 175, 55, 0.2) !important;
+        border-color: #D4AF37 !important;
+        transform: translateY(-2px);
     }
     </style>
     """
